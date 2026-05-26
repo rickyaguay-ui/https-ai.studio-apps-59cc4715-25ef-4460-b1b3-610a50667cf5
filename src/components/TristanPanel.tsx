@@ -17,7 +17,9 @@ import {
   Image as ImageIcon,
   ShieldAlert,
   Search,
+  Mail,
 } from "lucide-react";
+import { SendToContactModal } from "./SendToContactModal";
 
 interface TristanPanelProps {
   currentWalkthrough: ApartmentWalkthrough | null;
@@ -36,6 +38,7 @@ export const TristanPanel = ({
 }: TristanPanelProps) => {
   const [copiedTristan, setCopiedTristan] = useState(false);
   const [copiedMaterials, setCopiedMaterials] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
 
   // Sync Meadowwood Brand specifications to map materials lists dynamically
   const [brandTrainingList, setBrandTrainingList] = useState<any[]>(() => {
@@ -618,23 +621,74 @@ export const TristanPanel = ({
               <h4 className="text-xs font-bold text-slate-350 flex items-center gap-1.5 uppercase font-serif tracking-wide">
                 Decision List (Apt {currentWalkthrough.aptNumber})
               </h4>
-              <button
-                onClick={() => copyToClipboard(generateTristanMarkdown(), "tristan")}
-                className="text-[11px] text-slate-400 hover:text-amber-400 flex items-center gap-1 outline-none font-bold"
-                title="Copy signoff list to device clipboard"
-              >
-                {copiedTristan ? (
-                  <>
-                    <Check className="w-3.5 text-emerald-400" />
-                    <span className="text-emerald-400">Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5" />
-                    <span>Copy Plan</span>
-                  </>
-                )}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    import('../firebase').then(async ({ getAccessToken }) => {
+                      const token = await getAccessToken();
+                      if (!token) {
+                        alert("Please sign in with Google first.");
+                        return;
+                      }
+                      try {
+                        const res = await fetch("https://keep.googleapis.com/v1/notes", {
+                          method: "POST",
+                          headers: {
+                            Authorization: `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                          },
+                          body: JSON.stringify({
+                            title: `Make-Ready: Apt ${currentWalkthrough.aptNumber}`,
+                            body: {
+                              text: {
+                                text: generateTristanMarkdown()
+                              }
+                            }
+                          })
+                        });
+                        if (res.ok) {
+                          alert("Saved to Google Keep!");
+                        } else {
+                          const err = await res.json();
+                          alert("Failed to save to Keep: " + (err.error?.message || "Unknown error"));
+                        }
+                      } catch (e: any) {
+                        alert("Ensure you granted Keep permissions: " + e.message);
+                      }
+                    });
+                  }}
+                  className="text-[11px] text-slate-400 hover:text-amber-400 flex items-center gap-1 outline-none font-bold"
+                  title="Save signoff list to Google Keep"
+                >
+                  <Package className="w-3.5" />
+                  <span>Keep</span>
+                </button>
+                <button
+                  onClick={() => setIsSendModalOpen(true)}
+                  className="text-[11px] text-slate-400 hover:text-indigo-400 flex items-center gap-1 outline-none font-bold"
+                  title="Email signoff list"
+                >
+                  <Mail className="w-3.5" />
+                  <span>Email</span>
+                </button>
+                <button
+                  onClick={() => copyToClipboard(generateTristanMarkdown(), "tristan")}
+                  className="text-[11px] text-slate-400 hover:text-amber-400 flex items-center gap-1 outline-none font-bold"
+                  title="Copy signoff list to device clipboard"
+                >
+                  {copiedTristan ? (
+                    <>
+                      <Check className="w-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5" />
+                      <span>Copy Plan</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Segmented Filter Buttons */}
@@ -967,6 +1021,12 @@ export const TristanPanel = ({
           </div>
         </div>
       )}
+      
+      <SendToContactModal 
+        isOpen={isSendModalOpen} 
+        onClose={() => setIsSendModalOpen(false)} 
+        markdownContent={generateTristanMarkdown()} 
+      />
     </div>
   );
 };
