@@ -1,0 +1,6 @@
+{
+  "name": "Meadowood Village Make-Ready Assistant",
+  "description": "An expert AI-powered Maintenance Walkthrough Assistant that tracks apartment make-ready checklists, repairs, and material lists for Meadowood Village Apartments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
